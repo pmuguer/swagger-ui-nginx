@@ -1,0 +1,28 @@
+version: '2'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ${PWD}/nginx_conf/default_location:/etc/nginx/vhost.d/default_location
+
+  swagger:
+    image: swaggerapi/swagger-ui
+    environment:
+      - VIRTUAL_HOST=swagger.local
+      - VIRTUAL_PORT=8080
+      - API_URLS=[{name:"Petstore", url:"http://definitions.swagger.local/swagger_petstore.json"}, {name:"Bookstore", url:"http://definitions.swagger.local/swagger_bookstore.json"}]
+      - SWAGGER_JSON=/foo/swagger_bookstore.json 
+    volumes:
+      - ${PWD}/swagger_examples:/foo
+
+  nginx-static-content:
+    image: nginx
+    environment:
+      - VIRTUAL_HOST=definitions.swagger.local
+    volumes:
+      - ${PWD}/swagger_examples:/usr/share/nginx/html:ro
+      #- ${PWD}/nginx_conf/default_location:/etc/nginx/vhost.d/default_location
