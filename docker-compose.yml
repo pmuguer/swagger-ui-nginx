@@ -1,27 +1,44 @@
 version: '2'
 
 services:
+  # Reverse proxy for the other two containers
   nginx-proxy:
     image: jwilder/nginx-proxy
     ports:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      # Allow CORS (Otherwise Swagger UI wont' be able to access the API definitions
+      # published by the nginx-static-content container)
       - ${PWD}/nginx_conf/default_location:/etc/nginx/vhost.d/default_location
 
+  # Swagger UI
   swagger:
     image: swaggerapi/swagger-ui
     environment:
+      # VIRTUAL_HOST is used by nginx-proxy; when it receives a request to
+      # swagger.local it will forward it to this container
       - VIRTUAL_HOST=swagger.local
+      # Required for swagger-ui to work with nginx-proxy; swagger-ui also
+      # exposes port 80, but port 8080 should be used by nginx-proxy,
+      # otherwise nginx-proxy will show a 502 Bad Gateway error when
+      # swagger.local is accessed
       - VIRTUAL_PORT=8080
+      # API URLS configuration: get the definitions from the nginx-static-content
+      # container defined below
       - API_URLS=[{name:"Petstore", url:"http://definitions.swagger.local/swagger_petstore.json"}, {name:"Bookstore", url:"http://definitions.swagger.local/swagger_bookstore.json"}]
+      # Default API definition to show at startup
       - SWAGGER_JSON=/foo/swagger_bookstore.json 
     volumes:
+      # Mount the directory so that /foo/swagger_bookstore.json is available
       - ${PWD}/swagger_examples:/foo
 
+  # Nginx to serve API definitions
   nginx-static-content:
     image: nginx
     environment:
+      # Required by nginx-proxy to properly route requests to this container
       - VIRTUAL_HOST=definitions.swagger.local
     volumes:
+      # Mount the volume with the example definitions
       - ${PWD}/swagger_examples:/usr/share/nginx/html:ro
