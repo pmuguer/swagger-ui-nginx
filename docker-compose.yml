@@ -25,4 +25,3 @@ services:
       - VIRTUAL_HOST=definitions.swagger.local
     volumes:
       - ${PWD}/swagger_examples:/usr/share/nginx/html:ro
-      #- ${PWD}/nginx_conf/default_location:/etc/nginx/vhost.d/default_location
